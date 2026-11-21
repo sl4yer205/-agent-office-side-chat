@@ -23,7 +23,7 @@ function seedState() {
 
 export async function loadState() {
   if (useBlob) {
-    const { list } = await import('@vercel/blob');
+    const { list, get } = await import('@vercel/blob');
     const { blobs } = await list({ prefix: BLOB_PATH, limit: 1 });
     const hit = blobs.find((b) => b.pathname === BLOB_PATH);
     if (!hit) {
@@ -31,9 +31,12 @@ export async function loadState() {
       await saveState(s);
       return s;
     }
-    const res = await fetch(hit.url);
-    if (!res.ok) throw new Error(`blob read failed: ${res.status}`);
-    return res.json();
+    // Store is Private: read through the SDK (token-authenticated), a plain
+    // fetch of the blob URL would be rejected.
+    const res = await get(BLOB_PATH, { access: 'private' });
+    if (!res || res.statusCode !== 200) throw new Error(`blob read failed: ${res && res.statusCode}`);
+    const text = await new Response(res.stream).text();
+    return JSON.parse(text);
   }
   if (existsSync(DATA_FILE)) return JSON.parse(await readFile(DATA_FILE, 'utf8'));
   const s = seedState();
@@ -45,7 +48,7 @@ export async function saveState(state) {
   if (useBlob) {
     const { put } = await import('@vercel/blob');
     await put(BLOB_PATH, JSON.stringify(state), {
-      access: 'public',
+      access: 'private',
       contentType: 'application/json',
       addRandomSuffix: false,
       allowOverwrite: true,
