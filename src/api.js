@@ -1,11 +1,17 @@
 // Thin wrappers over the HQ API.
 // Works against both backends: the local Node server (server/server.js, no key)
 // and the Vercel Functions deployment (api/*.js), where every call must carry
-// the office key in the "x-hq-key" header. The key is asked once per browser
-// session (only when the server answers 401) and kept in sessionStorage.
+// the office key in the "x-hq-key" header. The key is asked once (only when
+// the server answers 401) and kept in localStorage, so it survives closing
+// the tab/browser — no re-prompt on every visit. Also migrates any key left
+// in sessionStorage by older builds.
 function getKey() {
   try {
-    return sessionStorage.getItem('hq-key') || '';
+    return (
+      localStorage.getItem('hq-key') ||
+      sessionStorage.getItem('hq-key') ||
+      ''
+    );
   } catch {
     return '';
   }
@@ -13,8 +19,13 @@ function getKey() {
 
 function setKey(k) {
   try {
-    if (k) sessionStorage.setItem('hq-key', k);
-    else sessionStorage.removeItem('hq-key');
+    if (k) {
+      localStorage.setItem('hq-key', k);
+      sessionStorage.removeItem('hq-key');
+    } else {
+      localStorage.removeItem('hq-key');
+      sessionStorage.removeItem('hq-key');
+    }
   } catch {}
 }
 
