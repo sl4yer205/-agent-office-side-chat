@@ -53,7 +53,7 @@ export default function App() {
     const r = svg.getBoundingClientRect();
     setGaze({
       x: ((e.clientX - r.left) / r.width) * 920,
-      y: ((e.clientY - r.top) / r.height) * 640,
+      y: ((e.clientY - r.top) / r.height) * 680,
     });
   };
 

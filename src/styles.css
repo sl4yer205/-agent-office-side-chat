@@ -165,8 +165,15 @@ button {
 }
 
 .room-svg {
-  flex: 1;
+  flex: none;
   width: 100%;
+  height: auto;
+  aspect-ratio: 920 / 680;
+  /* Cap the stage near the approved design size so the room never blows up
+     on wide monitors; the second cap keeps it inside shorter viewports. */
+  max-width: min(1040px, calc((100vh - 215px) * 1.3529));
+  margin-inline: auto;
+  margin-bottom: 8px;
   min-height: 0;
 }
 
@@ -179,7 +186,7 @@ button {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-top: 8px;
+  margin-top: auto;
 }
 
 .foot-dot {
@@ -208,7 +215,7 @@ button {
 
 .plate-name {
   fill: #ffffff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   text-anchor: middle;
 }
@@ -698,6 +705,7 @@ button {
   }
 
   .room-svg {
-    min-height: 380px;
+    min-height: 0;
+    max-width: 100%;
   }
 }

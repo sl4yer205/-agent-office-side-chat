@@ -5,18 +5,18 @@ import Blob from './Blob.jsx';
 // corner room, pale lavender walls, sage floor, chart TV, bookshelf, clock, plants.
 // Desk assignment mirrors the Figma HQ frame (back diagonal row, then front row).
 const SLOTS = [
-  { id: 'canton-network', x: 302, y: 262 },
-  { id: 'deepseek-bot', x: 480, y: 294 },
-  { id: 'hot-repo', x: 658, y: 326 },
-  { id: 'config-agent', x: 224, y: 402 },
-  { id: 'custom-cursor', x: 402, y: 434 },
-  { id: 'agent-office', x: 580, y: 466 },
+  { id: 'canton-network', x: 292, y: 252 },
+  { id: 'deepseek-bot', x: 472, y: 288 },
+  { id: 'hot-repo', x: 652, y: 324 },
+  { id: 'config-agent', x: 226, y: 398 },
+  { id: 'custom-cursor', x: 386, y: 440 },
+  { id: 'agent-office', x: 546, y: 470 },
 ];
 
 function Bookshelf() {
   const spines = ['#e8483f', '#f0b429', '#3ecf8e', '#3b93f0', '#8b5cf6', '#e152b0'];
   return (
-    <g transform="translate(108 138)">
+    <g transform="translate(96 150)">
       <rect x="0" y="0" width="118" height="138" rx="6" fill="#b08968" />
       {[0, 1, 2].map((row) => (
         <g key={row}>
@@ -43,7 +43,7 @@ function Bookshelf() {
 function ChartTv() {
   const bars = [26, 40, 32, 52, 44, 62];
   return (
-    <g transform="translate(592 78)">
+    <g transform="translate(600 84)">
       <rect x="0" y="0" width="168" height="102" rx="10" fill="#2e3440" />
       <rect x="10" y="10" width="148" height="82" rx="6" fill="#1f2733" />
       {bars.map((h, i) => (
@@ -58,7 +58,7 @@ function ChartTv() {
 
 function Clock() {
   return (
-    <g transform="translate(404 96)">
+    <g transform="translate(404 100)">
       <circle r="27" fill="#ffffff" stroke="#c9cfda" strokeWidth="3" />
       <line x1="0" y1="0" x2="0" y2="-15" stroke="#2e3440" strokeWidth="3.5" strokeLinecap="round" />
       <line x1="0" y1="0" x2="10" y2="6" stroke="#2e3440" strokeWidth="3.5" strokeLinecap="round" />
@@ -84,25 +84,25 @@ export default function Room({ chats, selectedId, gaze, onSelect }) {
   const known = new Set(SLOTS.map((s) => s.id));
   chats
     .filter((c) => !known.has(c.id))
-    .forEach((c, i) => placed.push({ chat: c, x: 742, y: 420 + i * 6, id: c.id }));
+    .forEach((c, i) => placed.push({ chat: c, x: 742, y: 428 + i * 6, id: c.id }));
 
   return (
-    <svg className="room-svg" viewBox="0 0 920 640" role="img" aria-label="Phòng office của các side chat">
+    <svg className="room-svg" viewBox="0 0 920 680" role="img" aria-label="Phòng office của các side chat">
       {/* walls */}
-      <polygon points="40,300 460,205 460,28 40,124" fill="#e4ddf6" />
-      <polygon points="460,205 880,300 880,124 460,28" fill="#d9d0f2" />
+      <polygon points="20,310 460,190 460,20 20,140" fill="#e4ddf6" />
+      <polygon points="460,190 900,310 900,140 460,20" fill="#d9d0f2" />
       {/* floor */}
-      <polygon points="40,300 460,205 880,300 460,612" fill="#a9c6a0" />
-      <polygon points="40,300 460,205 880,300 460,612" fill="none" stroke="#8fae86" strokeWidth="3" />
+      <polygon points="20,310 460,190 900,310 460,660" fill="#a9c6a0" />
+      <polygon points="20,310 460,190 900,310 460,660" fill="none" stroke="#8fae86" strokeWidth="3" />
       {/* rug */}
-      <ellipse cx="452" cy="428" rx="238" ry="52" fill="#f4f1e6" opacity="0.35" />
+      <ellipse cx="460" cy="448" rx="250" ry="54" fill="#f4f1e6" opacity="0.35" />
 
       <Bookshelf />
       <ChartTv />
       <Clock />
-      <Plant x={86} y={452} />
-      <Plant x={838} y={452} s={1.1} />
-      <Plant x={452} y={196} s={0.8} />
+      <Plant x={110} y={452} />
+      <Plant x={806} y={452} s={1.1} />
+      <Plant x={452} y={208} s={0.8} />
 
       {placed.map(({ chat, x, y }, i) => (
         <Blob
