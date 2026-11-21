@@ -1,0 +1,15 @@
+[Unit]
+Description=Agent Office - Side Chat HQ (API + web)
+After=network.target
+
+[Service]
+Type=simple
+User=agentoffice
+WorkingDirectory=/opt/agent-office
+Environment=PORT=8787
+ExecStart=/usr/bin/node server/server.js
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

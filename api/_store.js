@@ -1,0 +1,83 @@
+// Shared state store for the Vercel Functions in this folder.
+//
+// Production (Vercel): the whole HQ state is one JSON document kept in Vercel
+// Blob at pathname "hq-state.json" (needs BLOB_READ_WRITE_TOKEN, added
+// automatically when a Blob store is connected to the project).
+// Local test: when that token is absent, falls back to server/data.json so the
+// functions can be exercised offline exactly like server/server.js does.
+//
+// State shape: { chats, outbox, sent, lastSyncAt } — same as server/server.js.
+import { readFile, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { SEED_CHATS } from '../server/seed.js';
+
+const BLOB_PATH = 'hq-state.json';
+const DATA_FILE = join(fileURLToPath(new URL('..', import.meta.url)), 'server', 'data.json');
+const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
+
+function seedState() {
+  return { chats: SEED_CHATS, outbox: [], sent: [], lastSyncAt: null };
+}
+
+export async function loadState() {
+  if (useBlob) {
+    const { list } = await import('@vercel/blob');
+    const { blobs } = await list({ prefix: BLOB_PATH, limit: 1 });
+    const hit = blobs.find((b) => b.pathname === BLOB_PATH);
+    if (!hit) {
+      const s = seedState();
+      await saveState(s);
+      return s;
+    }
+    const res = await fetch(hit.url);
+    if (!res.ok) throw new Error(`blob read failed: ${res.status}`);
+    return res.json();
+  }
+  if (existsSync(DATA_FILE)) return JSON.parse(await readFile(DATA_FILE, 'utf8'));
+  const s = seedState();
+  await saveState(s);
+  return s;
+}
+
+export async function saveState(state) {
+  if (useBlob) {
+    const { put } = await import('@vercel/blob');
+    await put(BLOB_PATH, JSON.stringify(state), {
+      access: 'public',
+      contentType: 'application/json',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    });
+    return;
+  }
+  await writeFile(DATA_FILE, JSON.stringify(state, null, 2), 'utf8');
+}
+
+export function newId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// All /api functions require header "x-hq-key" == HQ_SECRET when HQ_SECRET is
+// set (production). Unset = local dev, no check. The office outbox relays into
+// Ted's real Muse side chats, so production must never run without a secret.
+export function checkAuth(req) {
+  const secret = process.env.HQ_SECRET;
+  if (!secret) return true;
+  return (req.headers['x-hq-key'] || '') === secret;
+}
+
+export async function readJson(req) {
+  if (req.body && typeof req.body === 'object') return req.body;
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  if (!chunks.length) return {};
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
+export function guard(req, res) {
+  if (checkAuth(req)) return true;
+  res.status(401).json({ error: 'unauthorized — missing or wrong x-hq-key' });
+  return false;
+}

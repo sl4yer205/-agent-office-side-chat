@@ -1,0 +1,5 @@
+node_modules/
+dist/
+server/data.json
+*.muse-github-snapshot-sync.json
+.DS_Store

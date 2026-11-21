@@ -1,0 +1,9 @@
+# Mẫu Caddyfile — deploy/install.sh tự sinh file thật tại /etc/caddy/Caddyfile.
+# basic_auth khoá TOÀN BỘ site (kể cả /api/*): office không có đăng nhập riêng,
+# mà outbox của nó nhắn thẳng vào các side chat thật — tuyệt đối không bỏ khoá này.
+thegioidongvat.loc.cc {
+	basic_auth {
+		ted <hash-do-caddy-hash-password-sinh>
+	}
+	reverse_proxy 127.0.0.1:8787
+}
