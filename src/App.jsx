@@ -7,9 +7,7 @@ export default function App() {
   const [data, setData] = useState({ chats: [], outbox: [], sent: [], lastSyncAt: null });
   const [selectedId, setSelectedId] = useState('config-agent');
   const [spotlightPaused, setSpotlightPaused] = useState(false);
-  const [gaze, setGaze] = useState({ x: 460, y: 300 });
   const lastManualRef = useRef(0);
-  const roomRef = useRef(null);
 
   const load = useCallback(async () => {
     try {
@@ -47,16 +45,6 @@ export default function App() {
     return () => clearInterval(t);
   }, [spotlightPaused, chats]);
 
-  const handleMouseMove = (e) => {
-    const svg = roomRef.current && roomRef.current.querySelector('svg');
-    if (!svg) return;
-    const r = svg.getBoundingClientRect();
-    setGaze({
-      x: ((e.clientX - r.left) / r.width) * 920,
-      y: ((e.clientY - r.top) / r.height) * 680,
-    });
-  };
-
   const handleSend = async (chatId, text) => {
     await sendMessage(chatId, text);
     await load();
@@ -86,7 +74,7 @@ export default function App() {
       </header>
 
       <div className="main">
-        <section className="room-wrap" ref={roomRef} onMouseMove={handleMouseMove}>
+        <section className="room-wrap">
           <div className="room-head">
             <div>
               <h1>Side Chat HQ</h1>
@@ -104,7 +92,9 @@ export default function App() {
               ))}
             </div>
           </div>
-          <Room chats={chats} selectedId={selected ? selected.id : null} gaze={gaze} onSelect={select} />
+          <div className="room-stage">
+            <Room chats={chats} selectedId={selected?.id} onSelect={select} />
+          </div>
           <div className="room-foot">
             {selected && (
               <>

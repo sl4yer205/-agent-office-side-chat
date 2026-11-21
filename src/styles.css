@@ -11,8 +11,8 @@ body,
 body {
   margin: 0;
   font-family: 'Quicksand', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  background: #edf1e8;
-  color: #22301f;
+  background: #f4f4f2;
+  color: #23242c;
 }
 
 button {
@@ -35,8 +35,8 @@ button {
 /* ---------- header ---------- */
 .header {
   height: 58px;
-  background: #20362a;
-  color: #f2f5ef;
+  background: #fff;
+  border-bottom: 1px solid #e5e2ea;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -51,7 +51,7 @@ button {
 }
 
 .logo {
-  background: #57a773;
+  background: #23242c;
   color: #fff;
   font-weight: 700;
   font-size: 20px;
@@ -76,9 +76,9 @@ button {
 }
 
 .spotlight-btn {
-  background: #2c4a39;
-  color: #e8efe6;
-  border: 1px solid #3d5f4b;
+  background: #f4f4f2;
+  color: #23242c;
+  border: 1px solid #e5e2ea;
   border-radius: 999px;
   padding: 7px 14px;
   font-weight: 600;
@@ -86,8 +86,8 @@ button {
 }
 
 .connected-pill {
-  background: #2c4a39;
-  border: 1px solid #3d5f4b;
+  background: #e7f6ec;
+  color: #246544;
   border-radius: 999px;
   padding: 7px 14px;
   font-weight: 600;
@@ -100,12 +100,12 @@ button {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #3ecf8e;
+  background: #2b9c61;
 }
 
 .avatar {
-  background: #f0b429;
-  color: #20362a;
+  background: #ffe2bc;
+  color: #6a461e;
   font-weight: 700;
   width: 38px;
   height: 38px;
@@ -117,18 +117,26 @@ button {
 
 /* ---------- room ---------- */
 .room-wrap {
+  --stage-width: 1040px;
   flex: 1;
   min-width: 0;
   padding: 18px 22px 12px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.room-head,
+.room-foot {
+  width: min(100%, var(--stage-width));
+  margin-inline: auto;
 }
 
 .room-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 6px;
+  gap: 12px;
 }
 
 .room-head h1 {
@@ -144,6 +152,8 @@ button {
 
 .spotlight-dots {
   display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 7px;
   padding-top: 8px;
 }
@@ -164,29 +174,31 @@ button {
   transform: scale(1.15);
 }
 
-.room-svg {
-  flex: none;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 920 / 680;
-  /* Cap the stage near the approved design size so the room never blows up
-     on wide monitors; the second cap keeps it inside shorter viewports. */
-  max-width: min(1040px, calc((100vh - 215px) * 1.3529));
-  margin-inline: auto;
-  margin-bottom: 8px;
+.room-stage {
+  container-type: size;
+  display: grid;
+  place-items: center;
+  min-width: 0;
   min-height: 0;
 }
 
+.room-svg {
+  display: block;
+  width: min(100%, var(--stage-width), calc(100cqh * 920 / 680));
+  height: auto;
+  aspect-ratio: 920 / 680;
+}
+
 .room-foot {
-  background: #22301f;
-  color: #e8efe6;
-  border-radius: 12px;
-  padding: 10px 16px;
+  color: #454958;
+  min-height: 32px;
+  padding-block: 6px;
+  font-size: 13px;
   font-weight: 600;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 9px;
-  margin-top: auto;
 }
 
 .foot-dot {
@@ -210,41 +222,50 @@ button {
 }
 
 .plate rect {
-  fill: #2e3440;
+  fill: #292d37;
+}
+
+.plate.active rect {
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.plate-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+}
+
+.plate-name,
+.plate-status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .plate-name {
-  fill: #ffffff;
-  font-size: 14px;
+  color: #fff;
+  font-size: 13px;
   font-weight: 700;
-  text-anchor: middle;
+  line-height: 14px;
 }
 
 .plate-status {
-  fill: #aeb8c8;
-  font-size: 10.5px;
+  color: #d1d6e0;
+  font-size: 9.5px;
   font-weight: 600;
-  text-anchor: middle;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
+  line-height: 10px;
 }
 
-.halo {
-  fill: none;
-  stroke: #f5a623;
-  stroke-width: 3;
-  opacity: 0.85;
-  animation: halo-pulse 1.6s ease-in-out infinite;
+.blob-click {
+  cursor: pointer;
 }
 
-@keyframes halo-pulse {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-  50% {
-    opacity: 0.95;
-  }
+.blob-click:focus-visible {
+  outline: 2px solid #292d37;
+  outline-offset: 3px;
 }
 
 .bob {
@@ -257,7 +278,7 @@ button {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-5px);
+    transform: translateY(-4px);
   }
 }
 
@@ -278,56 +299,23 @@ button {
   }
 }
 
-.hop {
-  animation: hop-jump 0.55s ease-in-out 3;
-}
-
-@keyframes hop-jump {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(-26px);
-  }
-}
-
-.burst line {
-  stroke: #f5a623;
-  stroke-width: 4;
-  stroke-linecap: round;
-  animation: burst-fade 0.55s ease-out 3;
-}
-
-@keyframes burst-fade {
-  0% {
-    opacity: 0;
-  }
-  30% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
 .think-dots circle {
   animation: dot-bounce 0.45s ease-in-out infinite alternate;
 }
 
 @keyframes dot-bounce {
   from {
-    transform: translateY(4px);
+    transform: translateY(2px);
   }
   to {
-    transform: translateY(-6px);
+    transform: translateY(-4px);
   }
 }
 
 .zzz {
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 700;
-  fill: #7a8699;
+  fill: #434d63;
   animation: zzz-float 2.4s ease-in-out infinite;
 }
 
@@ -349,15 +337,37 @@ button {
   stroke-width: 1.5;
 }
 
-.bubble polygon {
+.bubble path {
   fill: #ffffff;
 }
 
-.bubble text {
-  fill: #2e3440;
-  font-size: 13.5px;
+.bubble-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #2e3440;
+  font-size: 12.5px;
   font-weight: 700;
-  text-anchor: middle;
+  line-height: 15px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.bubble-copy span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bob,
+  .blink,
+  .think-dots circle,
+  .zzz {
+    animation: none;
+  }
 }
 
 /* ---------- side column ---------- */
@@ -704,8 +714,16 @@ button {
     overflow-y: visible;
   }
 
+  .room-wrap {
+    flex: none;
+    grid-template-rows: auto auto auto;
+  }
+
+  .room-stage {
+    container-type: inline-size;
+  }
+
   .room-svg {
-    min-height: 0;
-    max-width: 100%;
+    width: min(100%, var(--stage-width));
   }
 }

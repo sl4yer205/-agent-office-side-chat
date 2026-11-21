@@ -1,22 +1,22 @@
 import React from 'react';
 import Blob from './Blob.jsx';
 
-// The office room, drawn like the Figma "A10 · Concept 1" frame:
-// corner room, pale lavender walls, sage floor, chart TV, bookshelf, clock, plants.
-// Desk assignment mirrors the Figma HQ frame (back diagonal row, then front row).
+// Seat coordinates leave room for the desk, nameplate, and the blob at full hop
+// inside the diamond centered at (460, 425) with radii of 440 and 235.
 const SLOTS = [
-  { id: 'canton-network', x: 292, y: 252 },
-  { id: 'deepseek-bot', x: 472, y: 288 },
-  { id: 'hot-repo', x: 652, y: 324 },
-  { id: 'config-agent', x: 226, y: 398 },
-  { id: 'custom-cursor', x: 386, y: 440 },
-  { id: 'agent-office', x: 546, y: 470 },
+  { id: 'canton-network', x: 316, y: 338, bubble: [294, 252] },
+  { id: 'deepseek-bot', x: 460, y: 305, bubble: [466, 215] },
+  { id: 'hot-repo', x: 604, y: 342, bubble: [756, 344] },
+  { id: 'config-agent', x: 329, y: 474, bubble: [184, 441], plateWidth: 122 },
+  { id: 'custom-cursor', x: 460, y: 516, bubble: [460, 439] },
+  { id: 'agent-office', x: 591, y: 478, bubble: [737, 443], plateWidth: 122 },
 ];
+const CORE_IDS = new Set(SLOTS.map(({ id }) => id));
 
 function Bookshelf() {
-  const spines = ['#e8483f', '#f0b429', '#3ecf8e', '#3b93f0', '#8b5cf6', '#e152b0'];
+  const spines = ['#c67a68', '#d8a451', '#77a986', '#719bc2', '#9579bf', '#c080a8'];
   return (
-    <g transform="translate(96 150)">
+    <g transform="translate(93 239) skewY(-28.1)">
       <rect x="0" y="0" width="118" height="138" rx="6" fill="#b08968" />
       {[0, 1, 2].map((row) => (
         <g key={row}>
@@ -43,11 +43,11 @@ function Bookshelf() {
 function ChartTv() {
   const bars = [26, 40, 32, 52, 44, 62];
   return (
-    <g transform="translate(600 84)">
+    <g transform="translate(576 106) skewY(28.1)">
       <rect x="0" y="0" width="168" height="102" rx="10" fill="#2e3440" />
       <rect x="10" y="10" width="148" height="82" rx="6" fill="#1f2733" />
       {bars.map((h, i) => (
-        <rect key={i} x={22 + i * 22} y={84 - h} width="13" height={h} rx="3" fill={i === 5 ? '#3ecf8e' : '#5b8def'} />
+        <rect key={i} x={22 + i * 22} y={92 - h} width="13" height={h - 6} rx="2" fill={i === 5 ? '#4cb998' : '#7392d0'} />
       ))}
       <text x="84" y="24" textAnchor="middle" fill="#e5e9f0" fontSize="11" fontWeight="700">
         HOẠT ĐỘNG TUẦN NÀY
@@ -58,7 +58,7 @@ function ChartTv() {
 
 function Clock() {
   return (
-    <g transform="translate(404 100)">
+    <g transform="translate(404 104)">
       <circle r="27" fill="#ffffff" stroke="#c9cfda" strokeWidth="3" />
       <line x1="0" y1="0" x2="0" y2="-15" stroke="#2e3440" strokeWidth="3.5" strokeLinecap="round" />
       <line x1="0" y1="0" x2="10" y2="6" stroke="#2e3440" strokeWidth="3.5" strokeLinecap="round" />
@@ -78,43 +78,49 @@ function Plant({ x, y, s = 1 }) {
   );
 }
 
-export default function Room({ chats, selectedId, gaze, onSelect }) {
-  const byId = new Map(chats.map((c) => [c.id, c]));
-  const placed = SLOTS.filter((s) => byId.has(s.id)).map((s) => ({ chat: byId.get(s.id), ...s }));
-  const known = new Set(SLOTS.map((s) => s.id));
-  chats
-    .filter((c) => !known.has(c.id))
-    .forEach((c, i) => placed.push({ chat: c, x: 742, y: 428 + i * 6, id: c.id }));
+export default function Room({ chats, selectedId, onSelect }) {
+  const [gaze, setGaze] = React.useState(null);
+  const byId = new Map(chats.map((chat) => [chat.id, chat]));
+  const extraChats = chats.filter((chat) => !CORE_IDS.has(chat.id));
+  const selectedExtra = extraChats.findIndex(({ id }) => id === selectedId);
+  const activePage = Math.floor(selectedExtra / SLOTS.length);
+
+  const handlePointerMove = ({ clientX, clientY, currentTarget }) => {
+    const matrix = currentTarget.getScreenCTM();
+    if (matrix) setGaze(new DOMPoint(clientX, clientY).matrixTransform(matrix.inverse()));
+  };
 
   return (
-    <svg className="room-svg" viewBox="0 0 920 680" role="img" aria-label="Phòng office của các side chat">
-      {/* walls */}
-      <polygon points="20,310 460,190 460,20 20,140" fill="#e4ddf6" />
-      <polygon points="460,190 900,310 900,140 460,20" fill="#d9d0f2" />
-      {/* floor */}
-      <polygon points="20,310 460,190 900,310 460,660" fill="#a9c6a0" />
-      <polygon points="20,310 460,190 900,310 460,660" fill="none" stroke="#8fae86" strokeWidth="3" />
-      {/* rug */}
-      <ellipse cx="460" cy="448" rx="250" ry="54" fill="#f4f1e6" opacity="0.35" />
+    <svg
+      className="room-svg"
+      viewBox="0 0 920 680"
+      role="group"
+      aria-label="Phòng office của các side chat"
+      onPointerMove={handlePointerMove}
+      onPointerLeave={() => setGaze(null)}
+    >
+      <g aria-hidden="true">
+        <polygon points="20,425 460,190 460,20 20,255" fill="#e4ddf6" />
+        <polygon points="460,190 900,425 900,255 460,20" fill="#d9d0f2" />
+        <polygon points="20,425 460,190 900,425 460,660" fill="#a9c6a0" stroke="#8fae86" strokeWidth="2" />
+        <polygon points="247,450 434,350 672,477 485,577" fill="#f4f1e6" opacity="0.2" />
 
-      <Bookshelf />
-      <ChartTv />
-      <Clock />
-      <Plant x={110} y={452} />
-      <Plant x={806} y={452} s={1.1} />
-      <Plant x={452} y={208} s={0.8} />
+        <Bookshelf />
+        <ChartTv />
+        <Clock />
+        <Plant x={155} y={385} s={0.75} />
+        <Plant x={765} y={387} s={0.85} />
+      </g>
 
-      {placed.map(({ chat, x, y }, i) => (
-        <Blob
-          key={chat.id}
-          chat={chat}
-          x={x}
-          y={y}
-          selected={chat.id === selectedId}
-          gaze={gaze}
-          onSelect={onSelect}
-          bobDelay={i * 0.35}
-        />
+      {SLOTS.map((slot, index) => {
+        const chat = byId.get(slot.id);
+        return chat && <Blob key={chat.id} chat={chat} slot={slot} selected={chat.id === selectedId}
+          gaze={gaze} onSelect={onSelect} bobDelay={index * 0.35} visible={activePage < 0} />;
+      })}
+      {extraChats.map((chat, index) => (
+        <Blob key={chat.id} chat={chat} slot={SLOTS[index % SLOTS.length]} selected={chat.id === selectedId}
+          gaze={gaze} onSelect={onSelect} bobDelay={(index % SLOTS.length) * 0.35}
+          visible={Math.floor(index / SLOTS.length) === activePage} />
       ))}
     </svg>
   );

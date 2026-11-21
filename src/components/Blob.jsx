@@ -1,135 +1,138 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
-// One round Bloub-style blob sitting at a desk.
-// - White pill eyes that follow the cursor (gaze prop, in SVG units).
-// - Dot arms in the body color, held a SMALL gap away from the body (Figma rule).
-// - status working: body stays; 3 white thinking dots bounce on the belly.
-// - status sleeping: squashed body, closed eyes, floating Zzz.
-// - status done + hop=true: hops with burst rays (completion notification only).
-export default function Blob({ chat, x, y, selected, gaze, onSelect, bobDelay = 0 }) {
-  const [thinking, setThinking] = useState(false);
+const BODY_RADIUS = 46;
 
-  useEffect(() => {
-    if (chat.status !== 'working') {
-      setThinking(false);
-      return undefined;
-    }
-    let dots;
-    const show = () => {
-      setThinking(true);
-      dots = setTimeout(() => setThinking(false), 1600);
-    };
-    const first = setTimeout(show, 1200);
-    const loop = setInterval(show, 5200);
-    return () => {
-      clearTimeout(first);
-      clearTimeout(dots);
-      clearInterval(loop);
-    };
-  }, [chat.status]);
+function Desk() {
+  return (
+    <g className="desk" aria-hidden="true" transform="scale(.9 1)">
+      <ellipse cx="0" cy="54" rx="70" ry="12" fill="#435b3d" opacity="0.12" />
+      <path d="M-64 36h9v21h-9zm79 13h9v17h-9zm45-12h9v19h-9z" fill="#ae895f" />
+      <path className="desk-top" d="M-74 26-21 8 74 28 21 49Z" />
+      <path className="desk-front" d="M-74 26 21 49V57L-74 34Z" />
+      <path d="M21 49 74 28V36L21 57Z" fill="#ad885c" />
+      <g transform="translate(53 -13)">
+        <path d="M-4 24h8l4 5H-8Z" fill="#414553" />
+        <rect x="-18" width="36" height="24" rx="3" className="monitor" />
+        <path d="M-13 18v-6h5v6zm8 0V7h5v11zm8 0V9h5v9zm8 0V4h4v14z" fill="#87acc9" />
+      </g>
+      <g transform="translate(-54 20) rotate(-10)">
+        <rect x="-12" y="-8" width="24" height="16" rx="2" fill="#faf7ef" />
+        <path d="M-8-3H8M-8 1H4" stroke="#b7bdc2" strokeWidth="1.5" strokeLinecap="round" />
+      </g>
+    </g>
+  );
+}
 
-  const gx = Math.max(-4.5, Math.min(4.5, (gaze.x - x) / 55));
-  const gy = Math.max(-3.5, Math.min(3.5, (gaze.y - y) / 55));
-  const sleeping = chat.status === 'sleeping';
-  const hopping = chat.status === 'done' && chat.hop;
+function SpeechBubble({ x, y, targetX, targetY, text }) {
+  const halfWidth = 82;
+  const halfHeight = 21;
+  const dx = targetX - x;
+  const dy = targetY - y;
+  const onSide = Math.abs(dx) > 90;
+  const edgeX = onSide ? Math.sign(dx) * (halfWidth - 1) : Math.max(-65, Math.min(65, dx / 2));
+  const edgeY = onSide ? Math.max(-7, Math.min(7, dy / 4)) : halfHeight - 1;
+  const tipDistance = Math.hypot(dx - edgeX, dy - edgeY);
+  const tipX = edgeX + (dx - edgeX) * 17 / tipDistance;
+  const tipY = edgeY + (dy - edgeY) * 17 / tipDistance;
+  const baseX = onSide ? 0 : 6;
+  const baseY = onSide ? 6 : 0;
 
   return (
-    <g transform={`translate(${x} ${y})`}>
-      {/* selection halo on the floor */}
-      {selected && <ellipse className="halo" cx="0" cy="82" rx="116" ry="19" />}
+    <g className="bubble" transform={`translate(${x} ${y})`}>
+      <title>{text}</title>
+      <rect x={-halfWidth} y={-halfHeight} width={halfWidth * 2} height={halfHeight * 2} rx="12" />
+      <path d={`M${edgeX - baseX} ${edgeY - baseY} L${tipX} ${tipY} L${edgeX + baseX} ${edgeY + baseY}`} pointerEvents="none" />
+      <foreignObject x={-halfWidth + 10} y={-halfHeight + 5} width={halfWidth * 2 - 20} height={halfHeight * 2 - 10}>
+        <div className="bubble-copy" title={text}><span>{text}</span></div>
+      </foreignObject>
+    </g>
+  );
+}
 
-      {/* desk */}
-      <g className="desk">
-        <polygon className="desk-top" points="-102,26 -34,4 102,26 34,50" />
-        <polygon className="desk-front" points="-102,26 34,50 34,64 -102,40" />
-        {/* monitor */}
-        <g transform="translate(38 -16)">
-          <rect x="-30" y="-24" width="60" height="40" rx="5" className="monitor" />
-          <rect x="-23" y="-17" width="34" height="5" rx="2.5" fill="#7dd3fc" />
-          <rect x="-23" y="-8" width="44" height="5" rx="2.5" fill="#f0b429" />
-          <rect x="-23" y="1" width="26" height="5" rx="2.5" fill="#3ecf8e" />
-          <rect x="-4" y="16" width="8" height="7" className="monitor" />
-        </g>
-        {/* paper sheet */}
-        <g transform="translate(-58 22) rotate(-6)">
-          <rect x="-22" y="-14" width="44" height="30" rx="3" fill="#ffffff" />
-          <rect x="-15" y="-7" width="30" height="4" rx="2" fill="#cbd5e1" />
-          <rect x="-15" y="0" width="24" height="4" rx="2" fill="#cbd5e1" />
-        </g>
+export default function Blob({ chat, slot, selected, gaze, onSelect, bobDelay, visible }) {
+  const figure = useRef(null);
+  const { x, y, bubble, plateWidth = 148 } = slot;
+  const sleeping = chat.status === 'sleeping';
+  const completed = chat.status === 'done' && Boolean(chat.hop);
+
+  useEffect(() => {
+    if (!completed || !figure.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const hop = figure.current.animate([
+      { transform: 'translateY(0)' },
+      { transform: 'translateY(-12px)', offset: 0.42 },
+      { transform: 'translateY(0)' },
+    ], { duration: 550, easing: 'ease-in-out', iterations: 1 });
+    return () => hop.cancel();
+  }, [completed]);
+
+  if (!visible) return null;
+
+  const gx = gaze ? Math.max(-4.5, Math.min(4.5, (gaze.x - x) / 55)) : 0;
+  const gy = gaze ? Math.max(-3.5, Math.min(3.5, (gaze.y - y) / 55)) : 0;
+  const waitingText = chat.status === 'waiting' && (chat.bubble || chat.statusLabel);
+
+  return (
+    <g className="seat" transform={`translate(${x} ${y})`}>
+      <Desk />
+      <g className={`plate${selected ? ' active' : ''}`} transform="translate(0 47)" aria-hidden="true">
+        <title>{`${chat.name} · ${chat.statusLabel}`}</title>
+        <rect x={-plateWidth / 2} width={plateWidth} height="26" rx="7" />
+        <foreignObject x={-plateWidth / 2 + 5} width={plateWidth - 10} height="26" pointerEvents="none">
+          <div className="plate-copy">
+            <div className="plate-name">{chat.name}</div>
+            <div className="plate-status">{chat.statusLabel}</div>
+          </div>
+        </foreignObject>
       </g>
 
-      {/* name plate on the front edge of the desk */}
-      <g className="plate" transform="translate(0 80)">
-        <rect x="-74" y="-17" width="148" height="34" rx="9" />
-        <text className="plate-name" y="-1">{chat.name}</text>
-        <text className="plate-status" y="12">{chat.statusLabel}</text>
-      </g>
-
-      {/* the blob itself (clickable) */}
       <g
-        className={`blob-click ${hopping ? 'hop' : ''}`}
+        className="blob-click"
+        role="button"
+        tabIndex={0}
+        aria-label={`${chat.name} · ${chat.statusLabel}`}
+        aria-description={waitingText || undefined}
+        aria-pressed={selected}
         onClick={() => onSelect(chat.id)}
-        style={{ cursor: 'pointer' }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onSelect(chat.id);
+          }
+        }}
       >
-        <g className="bob" style={{ animationDelay: `${bobDelay}s` }}>
-          {hopping && (
-            <g className="burst">
-              {[-70, -45, -20, 0, 20, 45, 70].map((a) => (
-                <line
-                  key={a}
-                  x1={Math.sin((a * Math.PI) / 180) * 50}
-                  y1={-Math.cos((a * Math.PI) / 180) * 50}
-                  x2={Math.sin((a * Math.PI) / 180) * 63}
-                  y2={-Math.cos((a * Math.PI) / 180) * 63}
-                />
-              ))}
-            </g>
-          )}
-
-          <g transform={sleeping ? 'scale(1 0.84)' : undefined}>
-            {/* dot arms: small gap from the body, same color */}
-            <circle cx="-52" cy="7" r="7" fill={chat.color} />
-            <circle cx="52" cy="7" r="7" fill={chat.color} />
-            <circle cx="0" cy="0" r="42" fill={chat.color} />
-            {sleeping ? (
-              <g fill="#ffffff">
-                <rect x="-20" y="-3" width="13.5" height="4.2" rx="2.1" />
-                <rect x="6.5" y="-3" width="13.5" height="4.2" rx="2.1" />
-              </g>
-            ) : (
-              <g transform={`translate(${gx} ${gy})`}>
-                <g className="blink">
-                  <ellipse cx="-13.5" cy="-3.5" rx="6.8" ry="10.5" fill="#ffffff" />
-                  <ellipse cx="13.5" cy="-3.5" rx="6.8" ry="10.5" fill="#ffffff" />
+        <g ref={figure} aria-hidden="true">
+          <g className="bob" style={{ animationDelay: `${bobDelay}s` }}>
+            <g className="blob-body" fill={chat.color} transform={sleeping ? 'translate(0 16) scale(1 .66)' : undefined}>
+              <circle cx="-57" cy="7" r="6.5" />
+              <circle cx="57" cy="7" r="6.5" />
+              <circle r={BODY_RADIUS} />
+              {sleeping ? (
+                <g fill="#fff">
+                  <rect x="-19" y="-2" width="13" height="4.5" rx="2.25" />
+                  <rect x="6" y="-2" width="13" height="4.5" rx="2.25" />
                 </g>
+              ) : (
+                <g className="gaze" transform={`translate(${gx} ${gy})`}>
+                  <g className="blink" fill="#fff" style={{ animationDelay: `${bobDelay}s` }}>
+                    <rect x="-18" y="-12" width="11" height="20" rx="5.5" />
+                    <rect x="7" y="-12" width="11" height="20" rx="5.5" />
+                  </g>
+                </g>
+              )}
+            </g>
+            {chat.status === 'working' && (
+              <g className="think-dots" fill="#fff">
+                {[-13, 0, 13].map((dx, index) => (
+                  <circle key={dx} cx={dx} cy="23" r="3.6" style={{ animationDelay: `${index * 0.14}s` }} />
+                ))}
               </g>
             )}
           </g>
-
-          {/* thinking: body stays, three white dots bounce on the belly */}
-          {thinking && !sleeping && (
-            <g className="think-dots">
-              {[-15, 0, 15].map((dx, i) => (
-                <circle key={dx} cx={dx} cy="16" r="5.5" fill="#ffffff" opacity="0.95" style={{ animationDelay: `${i * 0.15}s` }} />
-              ))}
-            </g>
-          )}
         </g>
       </g>
 
-      {/* sleeping Zzz */}
-      {sleeping && (
-        <text className="zzz" x="46" y="-44">Zzz</text>
-      )}
-
-      {/* waiting speech bubble */}
-      {chat.status === 'waiting' && chat.bubble && (
-        <g className="bubble" transform="translate(-104 -84)">
-          <rect x="-110" y="-19" width="220" height="32" rx="12" />
-          <polygon points="86,13 102,13 92,24" />
-          <text y="1">{chat.bubble}</text>
-        </g>
-      )}
+      {sleeping && <text className="zzz" x="37" y="-39" aria-hidden="true">Zzz</text>}
+      {waitingText && <SpeechBubble x={bubble[0] - x} y={bubble[1] - y} targetX={0} targetY={0} text={waitingText} />}
     </g>
   );
 }
