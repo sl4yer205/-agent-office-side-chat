@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Room from './components/Room.jsx';
-import SideColumn from './components/SideColumn.jsx';
+import { WorkList, DetailPanel } from './components/SideColumn.jsx';
 import { getState, sendMessage, createBot } from './api.js';
 
 export default function App() {
   const [data, setData] = useState({ chats: [], outbox: [], sent: [], lastSyncAt: null });
   const [selectedId, setSelectedId] = useState('config-agent');
   const [spotlightPaused, setSpotlightPaused] = useState(false);
+  const [gaze, setGaze] = useState({ x: 620, y: 400 });
   const lastManualRef = useRef(0);
+  const roomRef = useRef(null);
 
   const load = useCallback(async () => {
     try {
@@ -27,6 +29,12 @@ export default function App() {
   const chats = data.chats;
   const selected = chats.find((c) => c.id === selectedId) || chats[0] || null;
 
+  const counts = {
+    working: chats.filter((c) => c.status === 'working').length,
+    waiting: chats.filter((c) => c.status === 'waiting').length,
+    done: chats.filter((c) => c.status === 'done').length,
+  };
+
   const select = useCallback((id) => {
     lastManualRef.current = Date.now();
     setSelectedId(id);
@@ -45,6 +53,16 @@ export default function App() {
     return () => clearInterval(t);
   }, [spotlightPaused, chats]);
 
+  const handleMouseMove = (e) => {
+    const svg = roomRef.current && roomRef.current.querySelector('svg');
+    if (!svg) return;
+    const r = svg.getBoundingClientRect();
+    setGaze({
+      x: ((e.clientX - r.left) / r.width) * 1240,
+      y: ((e.clientY - r.top) / r.height) * 800,
+    });
+  };
+
   const handleSend = async (chatId, text) => {
     await sendMessage(chatId, text);
     await load();
@@ -62,6 +80,17 @@ export default function App() {
           <span className="logo">ao</span>
           <span className="brand-name">agent office</span>
         </div>
+        <div className="counters">
+          <span className="counter counter-working">
+            <b>{counts.working}</b> đang chạy việc
+          </span>
+          <span className="counter counter-waiting">
+            <b>{counts.waiting}</b> việc chờ QC
+          </span>
+          <span className="counter counter-done">
+            <b>{counts.done}</b> việc đã xong
+          </span>
+        </div>
         <div className="header-right">
           <button className="spotlight-btn" onClick={() => setSpotlightPaused((v) => !v)}>
             {spotlightPaused ? '▶ Chạy spotlight' : '⏸ Tạm dừng spotlight'}
@@ -74,11 +103,11 @@ export default function App() {
       </header>
 
       <div className="main">
-        <section className="room-wrap">
+        <section className="room-wrap" ref={roomRef} onMouseMove={handleMouseMove}>
           <div className="room-head">
             <div>
               <h1>Side Chat HQ</h1>
-              <p>6 side chat — mỗi blob là một cuộc trò chuyện có thật</p>
+              <p>{chats.length} side chat — tầng 1 làm việc, rảnh thì lên tầng 2 nghỉ</p>
             </div>
             <div className="spotlight-dots">
               {chats.map((c) => (
@@ -92,9 +121,7 @@ export default function App() {
               ))}
             </div>
           </div>
-          <div className="room-stage">
-            <Room chats={chats} selectedId={selected?.id} onSelect={select} />
-          </div>
+          <Room chats={chats} selectedId={selected ? selected.id : null} gaze={gaze} onSelect={select} />
           <div className="room-foot">
             {selected && (
               <>
@@ -105,16 +132,18 @@ export default function App() {
           </div>
         </section>
 
-        <SideColumn
-          chats={chats}
-          selected={selected}
-          outbox={data.outbox}
-          sent={data.sent}
-          lastSyncAt={data.lastSyncAt}
-          onSelect={select}
-          onSendMessage={handleSend}
-          onCreateBot={handleCreate}
-        />
+        <div className="below">
+          <WorkList chats={chats} selected={selected} outbox={data.outbox} onSelect={select} />
+          <DetailPanel
+            chats={chats}
+            selected={selected}
+            outbox={data.outbox}
+            sent={data.sent}
+            lastSyncAt={data.lastSyncAt}
+            onSendMessage={handleSend}
+            onCreateBot={handleCreate}
+          />
+        </div>
       </div>
     </div>
   );

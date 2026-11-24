@@ -8,6 +8,16 @@ export const STATUS_DOT = {
   sleeping: '#8b93a7',
 };
 
+// Company-style job states (like the reference video): work runs downstairs,
+// finished work waits for the CEO (Ted) to QC, done is done.
+export const JOB_PILL = {
+  working: { label: 'Đang chạy', bg: '#e3effe', fg: '#1d5fc4' },
+  waiting: { label: 'Chờ QC', bg: '#fdf3d7', fg: '#8a6d1a' },
+  done: { label: 'Đã xong', bg: '#e2f6ec', fg: '#1d7a4c' },
+  idle: { label: 'Rảnh', bg: '#eef0ea', fg: '#5c6b58' },
+  sleeping: { label: 'Đang ngủ', bg: '#e8ebf2', fg: '#5b6a86' },
+};
+
 const BOT_COLORS = [
   ['#0a0a0c', 'Đen mực'],
   ['#8b5e3c', 'Nâu'],
@@ -30,7 +40,47 @@ function formatSync(iso) {
   return `${p(d.getHours())}:${p(d.getMinutes())} ${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
-export default function SideColumn({ chats, selected, outbox, sent, lastSyncAt, onSelect, onSendMessage, onCreateBot }) {
+export function JobPill({ status }) {
+  const pill = JOB_PILL[status] || JOB_PILL.idle;
+  return (
+    <span className="job-pill" style={{ background: pill.bg, color: pill.fg }}>
+      <span className="status-dot" style={{ background: STATUS_DOT[status] || '#a3a3a3' }} />
+      {pill.label}
+    </span>
+  );
+}
+
+export function WorkList({ chats, selected, outbox, onSelect }) {
+  return (
+    <section className="panel work-panel">
+      <div className="panel-title">
+        DANH SÁCH VIỆC
+        {outbox.length > 0 && <span className="pending-badge">{outbox.length} tin chờ đồng bộ</span>}
+      </div>
+      <div className="work-list">
+        {chats.map((c) => (
+          <button
+            key={c.id}
+            className={`work-row ${selected && c.id === selected.id ? 'active' : ''}`}
+            onClick={() => onSelect(c.id)}
+          >
+            <span className="chat-dot" style={{ background: c.color }} />
+            <span className="work-row-main">
+              <span className="work-row-name">{c.name}</span>
+              <span className="work-row-task">{c.task}</span>
+            </span>
+            <span className="work-row-meta">
+              <JobPill status={c.status} />
+              <span className="chat-row-time">{c.lastActive}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function DetailPanel({ chats, selected, outbox, sent, lastSyncAt, onSendMessage, onCreateBot }) {
   const [draft, setDraft] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [botName, setBotName] = useState('');
@@ -68,45 +118,19 @@ export default function SideColumn({ chats, selected, outbox, sent, lastSyncAt, 
   }
 
   return (
-    <aside className="side">
-      <div className="side-section">
-        <div className="side-title">
-          SIDE CHATS
-          {outbox.length > 0 && <span className="pending-badge">{outbox.length} tin chờ đồng bộ</span>}
-        </div>
-        <div className="chat-list">
-          {chats.map((c) => (
-            <button
-              key={c.id}
-              className={`chat-row ${selected && c.id === selected.id ? 'active' : ''}`}
-              onClick={() => onSelect(c.id)}
-            >
-              <span className="chat-dot" style={{ background: c.color }} />
-              <span className="chat-row-main">
-                <span className="chat-row-name">{c.name}</span>
-                <span className="chat-row-sub">{c.sub}</span>
-              </span>
-              <span className="chat-row-meta">
-                <span className="status-chip">
-                  <span className="status-dot" style={{ background: STATUS_DOT[c.status] || '#a3a3a3' }} />
-                  {c.statusLabel}
-                </span>
-                <span className="chat-row-time">{c.lastActive}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
+    <section className="panel detail-panel">
+      <div className="panel-title">CHI TIẾT</div>
       {selected && (
-        <div className="side-section detail">
-          <div className="side-title">SIDE CHAT DETAIL</div>
+        <>
           <div className="detail-head">
             <span className="chat-dot big" style={{ background: selected.color }} />
             <div>
               <div className="detail-name">{selected.name}</div>
               <div className="detail-sub">{selected.sub}</div>
             </div>
+            <span className="detail-pill">
+              <JobPill status={selected.status} />
+            </span>
           </div>
           <div className="detail-task">{selected.task}</div>
           <ul className="checklist">
@@ -149,17 +173,17 @@ export default function SideColumn({ chats, selected, outbox, sent, lastSyncAt, 
               <span className="chip chip-sent">Đã gửi</span>
             </div>
           ))}
-        </div>
+        </>
       )}
 
-      <div className="side-section">
+      <div className="create-zone">
         {!showCreate ? (
           <button className="create-btn" onClick={() => setShowCreate(true)}>
             ＋ Tạo bot mới
           </button>
         ) : (
           <div className="create-form">
-            <div className="side-title">TẠO BOT MỚI (SIDE CHAT)</div>
+            <div className="panel-title">TẠO BOT MỚI (SIDE CHAT)</div>
             <input value={botName} onChange={(e) => setBotName(e.target.value)} placeholder="Tên bot" />
             <input value={botPurpose} onChange={(e) => setBotPurpose(e.target.value)} placeholder="Mục đích của bot" />
             <div className="swatches">
@@ -193,6 +217,6 @@ export default function SideColumn({ chats, selected, outbox, sent, lastSyncAt, 
       </div>
 
       <div className="side-footer">Đồng bộ lần cuối: {formatSync(lastSyncAt)}</div>
-    </aside>
+    </section>
   );
 }
