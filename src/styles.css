@@ -651,6 +651,14 @@ button {
   gap: 8px;
 }
 
+.sync-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #71806c;
+}
+
 .msg-box textarea,
 .create-form input {
   font-family: inherit;
