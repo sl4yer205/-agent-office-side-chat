@@ -246,6 +246,58 @@ button {
   margin-bottom: 10px;
 }
 
+.room3d {
+  flex: none;
+  width: 100%;
+  aspect-ratio: 1240 / 800;
+  max-width: 1240px;
+  margin-inline: auto;
+  margin-bottom: 10px;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.room3d:active {
+  cursor: grabbing;
+}
+
+.room3d canvas {
+  display: block;
+}
+
+.head-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.view-toggle {
+  display: inline-flex;
+  background: #ffffff;
+  border: 1.5px solid #d5dcc9;
+  border-radius: 999px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.view-toggle button {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 5px 16px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #5c6b58;
+  cursor: pointer;
+}
+
+.view-toggle button.on {
+  background: #20362a;
+  color: #ffffff;
+}
+
 .room-foot {
   background: #22301f;
   color: #e8efe6;

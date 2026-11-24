@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Room from './components/Room.jsx';
+import Room3D from './components/Room3D.jsx';
 import { WorkList, DetailPanel } from './components/SideColumn.jsx';
 import { getState, sendMessage, createBot } from './api.js';
 
@@ -8,6 +9,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState('config-agent');
   const [spotlightPaused, setSpotlightPaused] = useState(false);
   const [gaze, setGaze] = useState({ x: 620, y: 400 });
+  const [gazeN, setGazeN] = useState({ x: 0, y: 0 });
+  const [viewMode, setViewMode] = useState('3d');
   const lastManualRef = useRef(0);
   const roomRef = useRef(null);
 
@@ -54,12 +57,16 @@ export default function App() {
   }, [spotlightPaused, chats]);
 
   const handleMouseMove = (e) => {
-    const svg = roomRef.current && roomRef.current.querySelector('svg');
+    const svg = roomRef.current && roomRef.current.querySelector('svg, canvas');
     if (!svg) return;
     const r = svg.getBoundingClientRect();
     setGaze({
       x: ((e.clientX - r.left) / r.width) * 1240,
       y: ((e.clientY - r.top) / r.height) * 800,
+    });
+    setGazeN({
+      x: ((e.clientX - r.left) / r.width) * 2 - 1,
+      y: ((e.clientY - r.top) / r.height) * 2 - 1,
     });
   };
 
@@ -109,24 +116,41 @@ export default function App() {
               <h1>Side Chat HQ</h1>
               <p>{chats.length} side chat — tầng 1 làm việc, rảnh thì lên tầng 2 nghỉ</p>
             </div>
-            <div className="spotlight-dots">
-              {chats.map((c) => (
-                <button
-                  key={c.id}
-                  title={c.name}
-                  className={`sdot ${selected && c.id === selected.id ? 'on' : ''}`}
-                  style={{ background: c.color }}
-                  onClick={() => select(c.id)}
-                />
-              ))}
+            <div className="head-controls">
+              <div className="view-toggle" role="group" aria-label="Chế độ xem">
+                <button className={viewMode === '3d' ? 'on' : ''} onClick={() => setViewMode('3d')}>
+                  3D
+                </button>
+                <button className={viewMode === '2d' ? 'on' : ''} onClick={() => setViewMode('2d')}>
+                  2D
+                </button>
+              </div>
+              <div className="spotlight-dots">
+                {chats.map((c) => (
+                  <button
+                    key={c.id}
+                    title={c.name}
+                    className={`sdot ${selected && c.id === selected.id ? 'on' : ''}`}
+                    style={{ background: c.color }}
+                    onClick={() => select(c.id)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
-          <Room chats={chats} selectedId={selected ? selected.id : null} gaze={gaze} onSelect={select} />
+          {viewMode === '3d' ? (
+            <Room3D chats={chats} selectedId={selected ? selected.id : null} gazeN={gazeN} onSelect={select} />
+          ) : (
+            <Room chats={chats} selectedId={selected ? selected.id : null} gaze={gaze} onSelect={select} />
+          )}
           <div className="room-foot">
             {selected && (
               <>
                 <span className="foot-dot" style={{ background: selected.color }} />
-                Đang xem: <b>{selected.name}</b> — spotlight tự chuyển mỗi 4 giây, bấm vào blob để chọn.
+                Đang xem: <b>{selected.name}</b>
+                {viewMode === '3d'
+                  ? ' — kéo để xoay 3 chiều, cuộn để zoom, bấm vào blob để chọn.'
+                  : ' — spotlight tự chuyển mỗi 4 giây, bấm vào blob để chọn.'}
               </>
             )}
           </div>
