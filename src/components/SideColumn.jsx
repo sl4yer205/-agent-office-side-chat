@@ -162,8 +162,8 @@ export function DetailPanel({ chats, selected, outbox, sent, lastSyncAt, onSendM
             </button>
           </div>
           <div className="sync-hint">
-            Tin gửi từ office được chuyển tới side chat trong tối đa ~15 phút. Khi đã chuyển, nhãn dưới tin đổi
-            thành “Đã gửi”; câu trả lời hiện lại tại đây sau vòng đồng bộ kế tiếp.
+            Tin gửi từ office được chuyển tới side chat gần như tức thì (thường ~1–3 phút). Khi đã chuyển, nhãn
+            dưới tin đổi thành “Đã gửi”; câu trả lời hiện lại tại đây sau vòng đồng bộ kế tiếp.
           </div>
           {pendingForChat.map((i) => (
             <div key={i.id} className="queue-item">
