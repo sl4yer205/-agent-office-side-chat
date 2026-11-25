@@ -1,10 +1,15 @@
 // Shared state store for the Vercel Functions in this folder.
 //
-// Production (Vercel): the whole HQ state is one JSON document kept in Vercel
-// Blob at pathname "hq-state.json" (needs BLOB_READ_WRITE_TOKEN, added
-// automatically when a Blob store is connected to the project).
-// Local test: when that token is absent, falls back to server/data.json so the
-// functions can be exercised offline exactly like server/server.js does.
+// Storage priority:
+// 1. Supabase (when SUPABASE_URL + SUPABASE_SERVICE_KEY are set): the whole
+//    HQ state is one JSONB row (table hq_state, id=1) in Ted's existing free
+//    Supabase project. Moved here 2026-11-25 after the Vercel Blob store hit
+//    "Limits Exceeded" — Blob meters every read/write against a small plan
+//    quota, Supabase's free tier does not meter REST reads this way, so the
+//    30-second outbox watcher can poll safely.
+// 2. Vercel Blob (fallback, when only BLOB_READ_WRITE_TOKEN is set): the
+//    state is one JSON document at pathname "hq-state.json".
+// 3. Local test: server/data.json, exactly like server/server.js.
 //
 // State shape: { chats, outbox, sent, lastSyncAt } — same as server/server.js.
 import { readFile, writeFile } from 'node:fs/promises';
@@ -17,11 +22,49 @@ const BLOB_PATH = 'hq-state.json';
 const DATA_FILE = join(fileURLToPath(new URL('..', import.meta.url)), 'server', 'data.json');
 const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
 
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+const useSupabase = !!(SUPABASE_URL && SUPABASE_SERVICE_KEY);
+
 function seedState() {
   return { chats: SEED_CHATS, outbox: [], sent: [], lastSyncAt: null };
 }
 
+// --- Supabase transport (PostgREST, service key bypasses RLS) ---
+async function supabaseLoad() {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/hq_state?id=eq.1&select=doc`, {
+    headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`supabase read failed: HTTP ${res.status}`);
+  const rows = await res.json();
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return rows[0].doc;
+}
+
+async function supabaseSave(state) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/hq_state`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates',
+    },
+    body: JSON.stringify({ id: 1, doc: state, updated_at: new Date().toISOString() }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`supabase write failed: HTTP ${res.status}`);
+}
+
 export async function loadState() {
+  if (useSupabase) {
+    const doc = await supabaseLoad();
+    if (doc) return doc;
+    const s = seedState();
+    await saveState(s);
+    return s;
+  }
   if (useBlob) {
     const { get } = await import('@vercel/blob');
     // Read the state doc directly by pathname — no list() call. Every Blob
@@ -48,6 +91,10 @@ export async function loadState() {
 }
 
 export async function saveState(state) {
+  if (useSupabase) {
+    await supabaseSave(state);
+    return;
+  }
   if (useBlob) {
     const { put } = await import('@vercel/blob');
     await put(BLOB_PATH, JSON.stringify(state), {
