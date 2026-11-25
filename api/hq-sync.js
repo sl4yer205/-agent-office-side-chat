@@ -11,6 +11,14 @@ export default async function handler(req, res) {
     if (!Array.isArray(chats)) return res.status(400).json({ error: 'chats must be an array' });
     const d = await loadState();
     const done = new Set(Array.isArray(processedIds) ? processedIds : []);
+    // Quota saver: most sync cycles change nothing. If no outbox item was
+    // processed and the chat list is byte-identical to what's stored, skip
+    // the write entirely (a put counts against the Blob plan quota; the
+    // store hit "Limits Exceeded" on 2026-11-25). lastSyncAt then reflects
+    // the last cycle that actually changed something.
+    if (done.size === 0 && JSON.stringify(chats) === JSON.stringify(d.chats)) {
+      return res.status(200).json({ outbox: d.outbox, skipped: true });
+    }
     const now = new Date().toISOString();
     d.sent = [
       ...d.outbox.filter((i) => done.has(i.id)).map((i) => ({ ...i, sentAt: now })),

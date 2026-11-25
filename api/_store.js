@@ -23,18 +23,21 @@ function seedState() {
 
 export async function loadState() {
   if (useBlob) {
-    const { list, get } = await import('@vercel/blob');
-    const { blobs } = await list({ prefix: BLOB_PATH, limit: 1 });
-    const hit = blobs.find((b) => b.pathname === BLOB_PATH);
-    if (!hit) {
+    const { get } = await import('@vercel/blob');
+    // Read the state doc directly by pathname — no list() call. Every Blob
+    // operation counts against the plan's included quota (the store hit
+    // "Limits Exceeded" on 2026-11-25), so reads must stay at 1 op each.
+    // Store is Private: read through the SDK (token-authenticated), a plain
+    // fetch of the blob URL would be rejected. get() returns null only when
+    // the blob truly does not exist; HTTP errors (403 etc.) throw, and those
+    // must propagate — never seed over an unreadable store.
+    const res = await get(BLOB_PATH, { access: 'private' });
+    if (!res) {
       const s = seedState();
       await saveState(s);
       return s;
     }
-    // Store is Private: read through the SDK (token-authenticated), a plain
-    // fetch of the blob URL would be rejected.
-    const res = await get(BLOB_PATH, { access: 'private' });
-    if (!res || res.statusCode !== 200) throw new Error(`blob read failed: ${res && res.statusCode}`);
+    if (res.statusCode !== 200) throw new Error(`blob read failed: ${res && res.statusCode}`);
     const text = await new Response(res.stream).text();
     return JSON.parse(text);
   }
